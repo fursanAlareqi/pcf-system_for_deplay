@@ -1,58 +1,100 @@
-<?php 
-// if(isset($_GET['action'],$_GET['ids']) && $_GET['action']=='delete'){
-//     $id=$_GET['ids'];
-//     $sql="delete from psyshological where id=? ";
-//     $stm=$con->prepare($sql); 
-//     $stm->execute(array($id));
-//     if($stm->rowCount() > 0 )
-//         {
-//             echo "<div class='alert alert-success'>One Row  Deleted</div>";
-//             echo "<script>
-//             window.open('admin_search_data.php','_self')
-//         </script>";
-//         }
-//     else
-//         {
-//             echo "<div class='alert alert-danger'>One Row Not Deleted</div>"; 
-//         }
+<?php
+// ===============================
+// report_data/psyshological_data.php
+// ===============================
 
-// }
-$date= date('Y-m-d');
-$user=$_SESSION['user']['id'];
-if($_SESSION['user']['rule_id'] == 2 || $_SESSION['user']['rule_id'] == 6){
-    $sql="SELECT * FROM psyshological  where date BETWEEN ? and ?      ";	
-    $stmu=$con->prepare($sql); 
-    $stmu->execute(array($from_date,$to_date));
-}
-else{
-    $branch=$_SESSION['user']['branch_id'];
-    $sql="SELECT * FROM psyshological  where date BETWEEN ? and ?   and  branch=?   ";	
-    $stmu=$con->prepare($sql); 
-    $stmu->execute(array($from_date,$to_date,$branch));
+// 1) نافذة التاريخ: إن ما جت من الواجهة القديمة، نثبّت شهر الحالي
+if (empty($from_date) || empty($to_date)) {
+    date_default_timezone_set('Asia/Aden');
+    $from_date = date('Y-m-01'); // اليوم الأول من الشهر
+    $to_date   = date('Y-m-t');  // آخر يوم من الشهر
 }
 
-//عدد الحالات الكلية
-if($stmu->rowCount()>0){
+// 2) صلاحيات الأدوار + منطق رؤية الفروع في حال عدم وجود branch بالـ POST
+$rule_id       = (int)($_SESSION['user']['rule_id'] ?? 0);
+$can_view_all  = in_array($rule_id, [2, 6], true); // الواجهة القديمة: 2 و 6 يشوفوا كل الفروع
 
-?>
-    <table id="multi-filter-select" class="table table-bordered table-head-bg-info table-bordered-bd-info mt-4" >
-            <center>
-            <?php if($_SESSION['user']['rule_id'] == 2 || $_SESSION['user']['rule_id'] == 6){ ?>
+// 3) بناء الاستعلام ديناميكياً
+$sql    = "SELECT * FROM psyshological WHERE `date` BETWEEN ? AND ?";
+$params = [$from_date, $to_date];
+
+// لو الصفحة الجديدة أرسلت branch نستخدمه، وإلا نرجع لمنطق الواجهة القديمة
+if (isset($_POST['branch'])) {
+    $b = trim($_POST['branch']);
+    if ($b !== '' && $b !== 'الكل') {
+        $sql     .= " AND branch = ?";
+        $params[] = (int)$b;
+    }
+} else {
+    // الواجهة القديمة (مافي branch بالـ POST)
+    if (!$can_view_all) {
+        $sql     .= " AND branch = ?";
+        $params[] = (int)($_SESSION['user']['branch_id'] ?? 0);
+    }
+}
+
+$sql .= " ORDER BY `date` DESC, id DESC";
+
+$stmu = $con->prepare($sql);
+$stmu->execute($params);
+
+// عدد الحالات الكليّة
+if ($stmu->rowCount() > 0) {
+    $rows = $stmu->fetchAll(PDO::FETCH_ASSOC);
+    $cnt  = 1;
+    ?>
+    <table id="multi-filter-select" class="table table-bordered table-head-bg-info table-bordered-bd-info mt-4">
+        <center>
+            <?php if ($rule_id === 2 || $rule_id === 6) { ?>
                 <button id="export" class="btn btn-success">Export to excel</button>
-                <?php } ?>        </center>
+            <?php } ?>
+        </center>
         <br>
         <thead>
             <tr>
+                <th>Sno.</th>
+                <th>اسم الموظف</th>
+                <th class="hidden-phone">الفرع</th>
+                <th>جديد/عودة</th>
+                <th>رقم كود الحالة</th>
+                <th>العمر</th>
+                <th>الجنس</th>
+                <th>التاريخ</th>
+                <th>تشخيص رئيسي</th>
+                <th>تشخيص فرعي</th>
+                <th>رقم الزيارة</th>
+                <th>العلاج</th>
+                <th>ملخص الحالة</th>
+                <th>التوصيات</th>
+                <th>Consciousness</th>
+                <th>Orientations</th>
+                <th>Attention_Concentration</th>
+                <th>Memory</th>
+                <th>Appearance and Behavior</th>
+                <th>Affect_Mood</th>
+                <th>Suicide_Homicide</th>
+                <th>Speech</th>
+                <th>Thinking</th>
+                <th>Perception</th>
+                <th>Insight</th>
+                <th>الفحوصات</th>
+                <th>تقييم وضع الحالة</th>
+                 <?php if (!$rule_id == 24 ) { ?> 
+                <th>تعديل</th>
+                <?php } ?>
+            </tr>
+        </thead>
+        <tfoot>
             <th>Sno.</th>
             <th>اسم الموظف</th>
             <th class="hidden-phone">الفرع</th>
             <th>جديد/عودة</th>
-            <th> رقم كود الحالة</th>
+            <th>رقم كود الحالة</th>
             <th>العمر</th>
             <th>الجنس</th>
-            <th> التاريخ</th>
-            <th>تشخيص رئيسي </th>
-            <th>تشخيص فرعي </th>
+            <th>التاريخ</th>
+            <th>تشخيص رئيسي</th>
+            <th>تشخيص فرعي</th>
             <th>رقم الزيارة</th>
             <th>العلاج</th>
             <th>ملخص الحالة</th>
@@ -61,7 +103,7 @@ if($stmu->rowCount()>0){
             <th>Orientations</th>
             <th>Attention_Concentration</th>
             <th>Memory</th>
-            <th>Appearance and Behavior </th>
+            <th>Appearance and Behavior</th>
             <th>Affect_Mood</th>
             <th>Suicide_Homicide</th>
             <th>Speech</th>
@@ -70,151 +112,84 @@ if($stmu->rowCount()>0){
             <th>Insight</th>
             <th>الفحوصات</th>
             <th>تقييم وضع الحالة</th>
-            <th >تعديل</th>
-            <!-- <th>حذف</th> -->
-                
-                
-            
-                
-            </tr>
-        </thead>
-        <tfoot>
-        <th>Sno.</th>
-        <th>اسم الموظف</th>
-            <th class="hidden-phone">الفرع</th>
-            <th>جديد/عودة</th>
-            <th> رقم كود الحالة</th>
-            <th>العمر</th>
-            <th>الجنس</th>
-            <th> التاريخ</th>
-            <th>تشخيص رئيسي </th>
-            <th>تشخيص فرعي </th>
-            <th>رقم الزيارة</th>
-            <th>العلاج</th>
-            <th>ملخص الحالة</th>
-            <th>التوصيات</th>
-            <th>Consciousness</th>
-            <th>Orientations</th>
-            <th>Attention_Concentration</th>
-            <th>Memory</th>
-            <th>Appearance and Behavior </th>
-            <th>Affect_Mood</th>
-            <th>Suicide_Homicide</th>
-            <th>Speech</th>
-            <th>Thinking</th>
-            <th>Perception</th>
-            <th>Insight</th>
-            <th>الفحوصات</th>
-            <th>تقييم وضع الحالة</th>
-            <th >تعديل</th>
-            <!-- <th>حذف</th> -->
+            <?php if (!$rule_id == 24 ) { ?> 
+                <th>تعديل</th>
+            <?php } ?>
+
         </tfoot>
         <tbody>
+        <?php
+        foreach ($rows as $row) {
+            // اسم الموظف
+            $stmUser = $con->prepare("SELECT name FROM user WHERE id = ?");
+            $stmUser->execute([$row['sender_name']]);
+            $nameRow = $stmUser->fetch(PDO::FETCH_ASSOC);
+            $sender_name = $nameRow['name'] ?? '';
+
+            // اسم الفرع
+            $stmBranch = $con->prepare("SELECT branch_name FROM branch WHERE id = ?");
+            $stmBranch->execute([$row['branch']]);
+            $branchRow = $stmBranch->fetch(PDO::FETCH_ASSOC);
+            $branch_name = $branchRow['branch_name'] ?? '';
+
+            // العمر + الجنس من الاستقبال (resption)
+            $stmAge = $con->prepare("
+                SELECT 
+                    YEAR(CURDATE()) - YEAR(brithday) 
+                      - (DATE_FORMAT(CURDATE(), '%m-%d') < DATE_FORMAT(brithday, '%m-%d')) AS age,
+                    sex
+                FROM resption
+                WHERE code = ? AND type = ?
+            ");
+            $stmAge->execute([$row['code'], 'جديد']);
+            $row_brithday_sex = $stmAge->fetch(PDO::FETCH_ASSOC) ?: ['age' => null, 'sex' => ''];
+
+            // تفكيك العلاج/الفحوصات
+            $medical_list = array_filter(array_map('trim', explode(',', $row['medical'] ?? '')));
+            $lap_list     = array_filter(array_map('trim', explode(',', $row['lap'] ?? '')));
+            ?>
+            <tr>
+                <td><?php echo $cnt++; ?></td>
+                <td><?php echo htmlspecialchars($sender_name); ?></td>
+                <td><?php echo htmlspecialchars($branch_name); ?></td>
+                <td><?php echo htmlspecialchars($row['type']); ?></td>
+                <td><?php echo htmlspecialchars($row['code']); ?></td>
+                <td><?php echo htmlspecialchars($row_brithday_sex['age']); ?></td>
+                <td><?php echo htmlspecialchars($row_brithday_sex['sex']); ?></td>
+                <td><?php echo htmlspecialchars($row['date']); ?></td>
+                <td><?php echo htmlspecialchars($row['diagnosis']); ?></td>
+                <td><?php echo htmlspecialchars($row['sub_diagnosis']); ?></td>
+                <td><?php echo htmlspecialchars($row['visites']); ?></td>
+                <td><?php foreach ($medical_list as $m) echo htmlspecialchars($m) . '<br>'; ?></td>
+                <td><?php echo htmlspecialchars($row['summerie']); ?></td>
+                <td><?php echo htmlspecialchars($row['end_diagnosis']); ?></td>
+                <td><?php echo htmlspecialchars($row['Consciousness']); ?></td>
+                <td><?php echo htmlspecialchars($row['Orientations']); ?></td>
+                <td><?php echo htmlspecialchars($row['Attention_Concentration']); ?></td>
+                <td><?php echo htmlspecialchars($row['Memory']); ?></td>
+                <td><?php echo htmlspecialchars($row['Appearance']); ?></td>
+                <td><?php echo htmlspecialchars($row['Affect_Mood']); ?></td>
+                <td><?php echo htmlspecialchars($row['Suicide_Homicide']); ?></td>
+                <td><?php echo htmlspecialchars($row['Speech']); ?></td>
+                <td><?php echo htmlspecialchars($row['Thinking']); ?></td>
+                <td><?php echo htmlspecialchars($row['Perception']); ?></td>
+                <td><?php echo htmlspecialchars($row['Insight']); ?></td>
+                <td><?php foreach ($lap_list as $l) echo htmlspecialchars($l) . '<br>'; ?></td>
+                <td><?php echo htmlspecialchars($row['appraisal']); ?></td>
+                <?php if (!$rule_id == 24 ) { ?> 
+                <td>
+                    <a href="psyshological_edit.php?action=edit&ids=<?php echo (int)$row['id']; ?>">
+                        <i class="fa fa-pencil"></i>تعديل
+                    </a>
+                </td>
+                <?php } ?>
+            </tr>
             <?php
-
-            {
-                foreach($stmu->fetchAll() as $row) 
-                        {
-                        
-                        ?>
-
-                        <tr>
-                        <td><?php echo $cnt;?></td>
-                        <td>
-                            <?php 
-                            $sql="select * from user where  id=? ";
-                            $stm=$con->prepare($sql); 
-                            $stm->execute(array($row['sender_name']));
-                            $name=$stm->fetch();
-                            $sender_name=$name['name'];
-                            echo $sender_name;
-                            ?>
-                        </td>
-                        <td>
-                            <?php 
-                            $sql="select * from branch where  id=? ";
-                            $stm=$con->prepare($sql); 
-                            $stm->execute(array($row['branch']));
-                            $branch=$stm->fetch();
-                            $branch_name=$branch['branch_name'];
-                            echo $branch_name;
-                            ?>
-                        </td>
-                        <td><?php echo $row['type'];?></td>
-                        <td><?php echo $row['code'];?></td>
-                        <td>
-                            <?php
-                            $sql="SELECT 
-    YEAR(CURDATE()) - YEAR(brithday) - 
-    (DATE_FORMAT(CURDATE(), '%m-%d') < DATE_FORMAT(brithday, '%m-%d')) AS age ,sex
-FROM resption
-WHERE code = ? AND type = ?    ";	
-                            $stmu=$con->prepare($sql); 
-                            $stmu->execute(array($row['code'],'جديد'));
-                            $row_brithday_sex=$stmu->fetch();
-                            echo $row_brithday_sex['age']; ?>
-                        </td>
-                        <td><?php echo $row_brithday_sex['sex']?></td>
-                        <td><?php echo $row['date'];?></td>
-                        <td><?php echo $row['diagnosis'];?></td>
-                        <td><?php echo $row['sub_diagnosis'];?></td>
-                        <td><?php echo $row['visites'];?></td>
-                        <td>
-                            <?php $medical_explode =explode(",",$row['medical']);
-                            foreach($medical_explode as $medical_name ){
-                                echo $medical_name . '<br>';
-                            }
-                                ?>
-                        </td>
-                        <td><?php echo $row['summerie'];?></td>
-                        <td><?php echo $row['end_diagnosis'];?></td>
-                        <td><?php echo $row['Consciousness'];?></td>
-                        <td><?php echo $row['Orientations'];?></td>
-                        <td><?php echo $row['Attention_Concentration'];?></td>
-                        <td><?php echo $row['Memory'];?></td>
-                        <td><?php echo $row['Appearance'];?></td>
-                        <td><?php echo $row['Affect_Mood'];?></td>
-                        <td><?php echo $row['Suicide_Homicide'];?></td>
-                        <td><?php echo $row['Speech'];?></td>
-                        <td><?php echo $row['Thinking'];?></td>
-                        <td><?php echo $row['Perception'];?></td>
-                        <td><?php echo $row['Insight'];?></td>
-                        <td>
-                            <?php $lap_explode =explode(",",$row['lap']);
-                            foreach($lap_explode as $lap_name ){
-                                echo $lap_name . '<br>';
-                            }
-                                ?>
-                        </td>
-                        <td><?php echo $row['appraisal'];?></td>
-                        <td>
-                            <a href="psyshological_edit.php?action=edit&ids=<?php echo $row['id'] ?>" >  
-                                <i class="fa fa-pencil"></i>تعديل
-                            </a>
-                        </td>
-                        <!-- <td>
-                            <a href="?action=delete&ids=<?php echo $row['id'] ?>" class="delete"  id="    ">
-                                <i class="fa fa-pencil"></i>حذف
-                            </a>
-                        </td> -->
-
-                            
-                        
-                        </tr>
-                    
-                        <?php
-                                $cnt=$cnt+1;		
-                        
-                    }		
-                }	
-            }
-            else{
-                echo' <div class="alert alert-danger">NO Row</div>';
-            }
-            
-                
-                ?>
-            
-            
+        } // foreach
+        ?>
         </tbody>
     </table>
+    <?php
+} else {
+    echo '<div class="alert alert-danger">NO Row</div>';
+}

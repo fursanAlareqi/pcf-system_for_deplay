@@ -569,7 +569,7 @@ date_default_timezone_set('Asia/Aden');
 
                   ?>">
                   <i class="flaticon-user-5"></i>
-                  <p>متابعه وتقييم</p>
+                  <p>متابعة جودة الخدمة ونسبة التحسن</p>
                   <span class="caret"></span>
                 </a>
                 <div class="collapse <?php if ($id == 213) echo 'show' ?>" id="control">
@@ -577,23 +577,12 @@ date_default_timezone_set('Asia/Aden');
 
 
 
-
-
-
                     <li <?php if ($num == 1 && $id == 213) echo 'class="active"' ?>>
-                      <a href="search_rebort_code.php?num=1&id=213">
+                      <a href="monitoring_and_evaluation.php?num=1&id=213">
 
-                        <span class="sub-item"> معرفة التقارير المدخلة البحث باسم الموظف</span>
+                        <span class="sub-item">المتابعة والتقييم</span>
                       </a>
                     </li>
-
-                    <li <?php if ($num == 2 && $id == 213) echo 'class="active"' ?>>
-                      <a href="admin_search_data.php?num=2&id=213">
-
-                        <span class="sub-item"> البيانات حسب تاريخ معين</span>
-                      </a>
-                    </li>
-
 
 
 

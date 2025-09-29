@@ -1,0 +1,4 @@
+deployment:
+ tasks:
+   - export DEPLOYPATH=/home/pcfyemen/public_html/pcf-system
+   - /bin/cp -R * $DEPLOYPATH

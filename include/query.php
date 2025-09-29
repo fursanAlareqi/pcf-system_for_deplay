@@ -11,10 +11,7 @@ function queryWithPagination(
     $table,
     $showToAll = false,
     $query = null,
-    $additional_where = null,
-    
-    
-) {
+    $additional_where = null) {
     // global $total_results, $total_pages, $per_page;
     if (isset($_GET['search']) ) {
         $search = $_GET['search'];
@@ -226,7 +223,7 @@ function appendPagination($total_pages, $_page, $total_results)
           $('.table').after(`$el`);
      });
      </script>
-    EOD;
+EOD;
 }
 
 function delete($con, $table)
@@ -266,7 +263,7 @@ function queryOfReportData(
     $table,
     $showToAll = false,
     $query = null,
-    $additional_where = null,
+    $additional_where = null
     
     
 ) {
